@@ -70,6 +70,20 @@ export class ExpensesService {
 
   async create(expenseData: CreateExpenseDto): Promise<Expense> {
     return this.dataSource.transaction(async manager => {
+      // Validate split details
+      if (expenseData.splitType === 'percentage' && expenseData.splitDetails) {
+        const totalPercentage = Object.values(expenseData.splitDetails).reduce((sum, val) => sum + val, 0);
+        // Allow for small floating point inaccuracies
+        if (Math.abs(totalPercentage - 100) > 0.01) {
+          throw new BadRequestException('Percentages must add up to 100%');
+        }
+      } else if (expenseData.splitType === 'exact' && expenseData.splitDetails) {
+        const totalExact = Object.values(expenseData.splitDetails).reduce((sum, val) => sum + val, 0);
+        if (Math.abs(totalExact - expenseData.amount) > 0.01) {
+          throw new BadRequestException('Exact amounts must add up to the total expense amount');
+        }
+      }
+
       // If group is specified, validate that all participants are group members
       if (expenseData.groupId) {
         const group = await this.groupsService.findOne(expenseData.groupId);
@@ -137,6 +151,23 @@ export class ExpensesService {
         throw new NotFoundException('Expense not found');
       }
 
+      const splitTypeToValidate = expenseData.splitType || expense.splitType;
+      const splitDetailsToValidate = expenseData.splitDetails || expense.splitDetails;
+      const amountToValidate = expenseData.amount || expense.amount;
+
+      // Validate split details
+      if (splitTypeToValidate === 'percentage' && splitDetailsToValidate) {
+        const totalPercentage = Object.values(splitDetailsToValidate).reduce((sum, val) => sum + val, 0);
+        if (Math.abs(totalPercentage - 100) > 0.01) {
+          throw new BadRequestException('Percentages must add up to 100%');
+        }
+      } else if (splitTypeToValidate === 'exact' && splitDetailsToValidate) {
+        const totalExact = Object.values(splitDetailsToValidate).reduce((sum, val) => sum + val, 0);
+        if (Math.abs(totalExact - amountToValidate) > 0.01) {
+          throw new BadRequestException('Exact amounts must add up to the total expense amount');
+        }
+      }
+
       // Update simple fields
       if (expenseData.description) expense.description = expenseData.description;
       if (expenseData.amount) expense.amount = expenseData.amount;
@@ -159,7 +190,7 @@ export class ExpensesService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.expensesRepository.delete(id);
+    await this.expensesRepository.softDelete(id);
   }
 
   async getBalances(userId: string, groupId?: string): Promise<any> {
