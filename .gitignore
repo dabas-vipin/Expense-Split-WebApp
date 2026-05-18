@@ -36,6 +36,9 @@ yarn-error.log*
 *.swp
 *.swo
 
+# Claude Code (per-user local overrides)
+.claude/settings.local.json
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
