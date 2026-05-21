@@ -48,15 +48,15 @@ For the full route list see `docs/API.md`; for entities and relations see
 
 ## Running it locally
 
-Full setup steps and the **database-config gotcha** (the API ignores `.env` and
-uses hardcoded Postgres credentials) are in `docs/KNOWN_ISSUES.md` §1 — read that
-first or the API will not connect to a DB.
+The API reads its Postgres connection from environment variables. Copy
+`soft-split-api/.env.example` to `soft-split-api/.env` and fill in real values
+before running migrations or the dev server.
 
 ```bash
 # Backend
 cd soft-split-api
 npm install
-npm run migration:run      # needs a reachable Postgres — see KNOWN_ISSUES §1
+npm run migration:run      # needs a reachable Postgres
 npm run start:dev          # http://localhost:7000
 
 # Frontend (separate terminal)

@@ -1,25 +1,18 @@
 import { DataSource } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
 import { config } from 'dotenv';
-import { User } from './src/users/entities/user.entity';
-import { Group } from './src/groups/entities/group.entity';
-import { Expense } from './src/expenses/entities/expense.entity';
-import { FriendRequest } from './src/users/entities/friend-request.entity';
-import { AddSoftDelete1709556234567 } from './src/migrations/1709556234567-AddSoftDelete';
 
+// Load .env into process.env before reading values below.
 config();
-
-const configService = new ConfigService();
 
 export default new DataSource({
   type: 'postgres',
-  host: 'localhost',
-  port: 5432,
-  username: 'softsplit',
-  password: 'softsplit123',
-  database: 'expense_sharing',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
   entities: ['src/**/*.entity.{js,ts}'],
   migrations: ['src/migrations/*.{js,ts}'],
   synchronize: false,
-  ssl: false,
-}); 
+  ssl: process.env.DB_SSL === 'true',
+});

@@ -31,7 +31,6 @@ export class GroupsService {
   }
 
   async findByUser(userId: string): Promise<Group[]> {
-    console.log('Finding groups for user:', userId);
     return this.groupsRepository.find({
       relations: ['members'],
       where: {

@@ -14,17 +14,14 @@ the core flows exist end to end, but with wiring bugs and unfinished edges.
 - Full set of pages: landing, dashboard, expenses (+new/+detail), groups
   (+new/+detail), friends, balances, profile
 
-## Phase 0 — make it runnable & honest (do first)
+## Phase 0 — make it runnable & honest (done)
 
-These unblock everyone. All detailed in `KNOWN_ISSUES.md`.
-
-1. **Fix DB config** (§1) — read connection from env, one consistent var set,
-   update `README.md`.
-2. **Register global `ValidationPipe`** (§2) — make DTO validation real.
-3. **Strip secret-leaking logs** (§3).
-4. **Fix `/auth/profile`** to return the full user (§4) — `user.name` after refresh.
-5. **Fix dashboard wiring** (§6 pagination field, §7 groups-by-user-id).
-6. Add `.env.example` files, gitignore `.env*`, rotate committed secrets (§15).
+These unblocked everyone — all addressed: env-driven DB config, global
+`ValidationPipe`, secret-leaking logs stripped, `/auth/profile` returns the full
+user, dashboard wiring fixed, and `.env.example` templates + `.gitignore` for
+`.env*`. One residual security note remains and is **operational, not a code
+change**: secrets previously committed still live in git history and must be
+rotated (and optionally scrubbed) before any real deployment (§15).
 
 ## Phase 1 — correctness & consistency
 

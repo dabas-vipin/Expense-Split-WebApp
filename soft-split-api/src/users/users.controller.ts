@@ -86,8 +86,6 @@ export class UsersController {
     @Request() req,
     @Body('receiverEmail') receiverEmail: string
   ) {
-    console.log('Received request with email:', receiverEmail); // Debug log
-    
     if (!receiverEmail) {
       throw new BadRequestException('Receiver email is required');
     }
