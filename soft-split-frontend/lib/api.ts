@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 
 // Create axios instance
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:7000/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:7000",
   headers: {
     "Content-Type": "application/json",
   },
