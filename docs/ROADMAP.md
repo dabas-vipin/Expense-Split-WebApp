@@ -46,22 +46,48 @@ All addressed:
   defaulting to `http://localhost:3000` for dev (§14). Production
   deployments must set it explicitly.
 
-## Phase 2 — tests & tooling
+## Phase 2 — tests & tooling (done)
 
-- Add a frontend test setup (Vitest or Jest + RTL) and a `test` script (§12).
-- Backend unit tests for balance calculation, splitting math, auth, friends flow.
-- CI to run both builds + `tsc --noEmit` + tests.
+- Vitest + React Testing Library set up on the frontend (§12); two
+  example tests prove the wiring (`lib/utils.test.ts` + a
+  `BalanceSummary` component test).
+- Backend Jest suites added for `GroupsService`, `AuthService`,
+  `FriendsService`, and (in Phase 3) `SettlementsService` — 33 tests
+  across 6 spec files.
+- GitHub Actions workflow runs `npm run build` + `npm test` on the
+  API and `npm ci --legacy-peer-deps` → `tsc --noEmit` → `next build`
+  → `vitest run` on the frontend, on push to `main` and every PR.
 
-## Phase 3 — product features (not yet built)
+## Phase 3 — product features
 
-Candidates implied by the domain but absent today:
+### Done
 
-- **Settle-up / payments** — recording that a debt was paid; balances are computed
-  but there's no way to mark them settled.
+- **Settle-up** — `Settlement` entity + migration; `POST /settlements`
+  and `GET /settlements` accept partial amounts and validate that the
+  payee exists and is active. `ExpensesService.getBalances` subtracts
+  net settlements on the cross-group view (per-group balances stay
+  expense-only since settlements aren't group-scoped). Frontend
+  `SettleUpModal` on the balances page, defaulting the amount to the
+  outstanding debt; only shown for "you owe" entries on the All-groups
+  view.
+- **Activity feed** — `ActivityEvent` entity logged on every settlement
+  (extensible `type` + `jsonb` payload so future event types like
+  friend-accept or expense-created can hang off the same plumbing).
+  `GET /activity?page=N&limit=M`. Dashboard renders a paginated
+  `ActivityFeed` component scoped to the current user.
+- **Equal-split balance fix** — landed alongside settle-up because it
+  blocked end-to-end validation: `getBalances` was filtering joined
+  participants down to just the current user, so `amount / N` divided
+  by 1. Now fetches expense IDs first then loads each expense with all
+  participants.
+
+### Not yet built
+
 - **Debt simplification** — minimize the number of transactions across a group
   (current `simplifyBalances` only nets pairwise from one user's view).
 - **Expense detail richness** — categories, receipts/attachments, notes, currency.
-- **Activity feed / notifications** — friend requests and new expenses are silent.
+- **Richer activity events** — only `settlement` is emitted today. Add
+  friend-accept, expense-created, group-mutation, etc.
 - **Email** — verification, password reset, friend-request notifications. There is
   a TODO in `users.controller.ts` for a 2FA password-update endpoint.
 - **Group invitations** — currently you can only add existing friends to a group.
