@@ -1,5 +1,5 @@
-import { HttpStatus, ValidationPipe } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { ClassSerializerInterceptor, HttpStatus, ValidationPipe } from '@nestjs/common';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
 
@@ -23,6 +23,11 @@ async function bootstrap() {
         errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
       }),
     );
+
+    // ClassSerializerInterceptor turns entities into plain objects via
+    // class-transformer on the way out, honoring @Exclude on fields like
+    // User.password so the bcrypt hash never leaves the server.
+    app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
     const httpFilter = app.get(HttpExceptionFilter);
     app.useGlobalFilters(httpFilter);

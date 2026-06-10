@@ -20,7 +20,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: any) {
     const user = await this.usersService.findOne(payload.sub);
-    if (!user) {
+    // Reject if the user no longer exists OR has been deactivated/soft-deleted:
+    // their token may still be cryptographically valid until expiry, but the
+    // account behind it should not keep operating.
+    if (!user || !user.isActive) {
       throw new UnauthorizedException();
     }
     return {

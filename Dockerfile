@@ -26,7 +26,9 @@ RUN npm run build
 # --- Build Frontend (NEXT_PUBLIC_* must be inlined at build time) ---
 WORKDIR /app/frontend
 COPY soft-split-frontend/package*.json ./
-RUN npm install
+# --legacy-peer-deps: react-day-picker@8.10.1 still declares peer react@^18
+# even though it works fine with React 19 at runtime.
+RUN npm install --legacy-peer-deps
 COPY soft-split-frontend/ ./
 ARG NEXT_PUBLIC_API_URL=http://localhost:7000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
