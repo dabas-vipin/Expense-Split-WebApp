@@ -1,5 +1,5 @@
 // src/groups/entities/group.entity.ts
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable, OneToMany, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Expense } from '../../expenses/entities/expense.entity';
 
@@ -26,4 +26,7 @@ export class Group {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at' })
+  deletedAt: Date;
 }
