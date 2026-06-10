@@ -49,6 +49,23 @@ export class ExpensesController {
     return this.expensesService.getBalances(userId, groupId);
   }
 
+  @Get('balances/simplified')
+  @UseGuards(JwtAuthGuard)
+  async getSimplifiedGroupBalances(
+    @Req() req: RequestWithUser,
+    @Query('groupId') groupId: string,
+  ) {
+    if (!groupId) {
+      throw new BadRequestException(
+        'groupId is required for simplified balances',
+      );
+    }
+    return this.expensesService.getSimplifiedGroupBalances(
+      groupId,
+      req.user.id,
+    );
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req): Promise<Expense> {

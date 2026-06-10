@@ -1,5 +1,5 @@
 // src/expenses/expenses.service.ts
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Not, IsNull, In } from 'typeorm';
 import { Expense } from './entities/expense.entity';
@@ -8,6 +8,7 @@ import { GroupsService } from '../groups/groups.service';
 import { SettlementsService } from '../settlements/settlements.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
+import { greedyMinCashFlow } from './balance-simplification';
 
 @Injectable()
 export class ExpensesService {
@@ -338,5 +339,101 @@ export class ExpensesService {
   async checkGroupAccess(userId: string, groupId: string): Promise<boolean> {
     const group = await this.groupsService.findOne(groupId);
     return group.members.some(member => member.id === userId);
+  }
+
+  /**
+   * Returns the minimum set of payments that fully settles every member's
+   * net position within `groupId`. Pure-expense based — settlements are
+   * cross-group, so they intentionally do NOT factor in here (see
+   * getBalances() for the same rule applied to the cross-group view).
+   *
+   * Caller must be a member of the group (404 if missing, 403 if not).
+   */
+  async getSimplifiedGroupBalances(groupId: string, callerId: string) {
+    const group = await this.groupsService.findOne(groupId);
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+    if (!group.members.some((member) => member.id === callerId)) {
+      throw new ForbiddenException('You are not a member of this group');
+    }
+
+    // Reuse the same id-then-load pattern as getBalances so participants
+    // arrays aren't filtered down by the join.
+    const idRows = await this.expensesRepository
+      .createQueryBuilder('expense')
+      .leftJoin('expense.group', 'group')
+      .leftJoin('expense.paidBy', 'paidBy')
+      .where('group.id = :groupId', { groupId })
+      .andWhere('expense.amount IS NOT NULL')
+      .andWhere('paidBy.isActive = true')
+      .select('DISTINCT expense.id', 'id')
+      .getRawMany<{ id: string }>();
+
+    const expenses = idRows.length
+      ? await this.expensesRepository.find({
+          where: { id: In(idRows.map((row) => row.id)) },
+          relations: ['paidBy', 'participants'],
+        })
+      : [];
+
+    // Work in cents to avoid float drift across many splits.
+    const netCents = new Map<string, number>();
+    const bump = (id: string, delta: number) => {
+      netCents.set(id, (netCents.get(id) ?? 0) + delta);
+    };
+
+    for (const expense of expenses) {
+      if (!expense.amount || !expense.paidBy || !expense.participants?.length) {
+        continue;
+      }
+      const totalCents = Math.round(
+        parseFloat(expense.amount.toString()) * 100,
+      );
+      const participants = expense.participants;
+      bump(expense.paidBy.id, totalCents);
+
+      switch (expense.splitType) {
+        case 'equal': {
+          // Distribute integer cents evenly; any remainder cent goes to the
+          // first participants in order so the totals sum exactly to `totalCents`.
+          const base = Math.floor(totalCents / participants.length);
+          let remainder = totalCents - base * participants.length;
+          for (const participant of participants) {
+            const share = base + (remainder > 0 ? 1 : 0);
+            if (remainder > 0) remainder -= 1;
+            bump(participant.id, -share);
+          }
+          break;
+        }
+        case 'percentage':
+          for (const participant of participants) {
+            const pct = expense.splitDetails?.[participant.id] || 0;
+            bump(participant.id, -Math.round((pct / 100) * totalCents));
+          }
+          break;
+        case 'exact':
+          for (const participant of participants) {
+            const exact = expense.splitDetails?.[participant.id] || 0;
+            bump(participant.id, -Math.round(exact * 100));
+          }
+          break;
+      }
+    }
+
+    const transactions = greedyMinCashFlow(netCents);
+    if (transactions.length === 0) return [];
+
+    // Resolve names from the group's already-loaded member list (saves a
+    // round-trip per user).
+    const nameById = new Map(group.members.map((m) => [m.id, m.name]));
+
+    return transactions.map((tx) => ({
+      from: tx.from,
+      fromName: nameById.get(tx.from) ?? '?',
+      to: tx.to,
+      toName: nameById.get(tx.to) ?? '?',
+      amount: tx.cents / 100,
+    }));
   }
 }
