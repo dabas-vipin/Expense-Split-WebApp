@@ -4,6 +4,7 @@ import { GroupsService } from './groups.service';
 import { Group } from './entities/group.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateGroupDto } from './dto/create-group.dto';
+import { UpdateGroupDto } from './dto/update-group.dto';
 
 @Controller('groups')
 export class GroupsController {
@@ -38,14 +39,22 @@ export class GroupsController {
 
   @UseGuards(JwtAuthGuard)
   @Put(':id')
-  async update(@Param('id') id: string, @Body() groupData: any): Promise<Group> {
-    return this.groupsService.update(id, groupData);
+  async update(
+    @Param('id') id: string,
+    @Body() groupData: UpdateGroupDto,
+    @Request() req,
+  ): Promise<Group> {
+    return this.groupsService.update(id, groupData, req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/members/:userId')
-  async addMember(@Param('id') id: string, @Param('userId') userId: string): Promise<Group> {
-    return this.groupsService.addMember(id, userId);
+  async addMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Request() req,
+  ): Promise<Group> {
+    return this.groupsService.addMember(id, userId, req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)

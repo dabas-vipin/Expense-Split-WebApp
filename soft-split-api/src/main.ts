@@ -6,7 +6,15 @@ import { HttpExceptionFilter } from './filters/http-exception.filter';
 async function bootstrap() {
   try {
     const app = await NestFactory.create(AppModule);
-    app.enableCors();
+
+    // CORS: read allowed origins from env (comma-separated). Defaults to the
+    // local frontend dev URL so a fresh clone Just Works; production deployments
+    // must set CORS_ORIGINS explicitly.
+    const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000')
+      .split(',')
+      .map(origin => origin.trim())
+      .filter(Boolean);
+    app.enableCors({ origin: corsOrigins });
 
     app.useGlobalPipes(
       new ValidationPipe({

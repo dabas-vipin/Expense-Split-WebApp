@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { Group } from './entities/group.entity';
 import { UsersService } from '../users/users.service';
 import { CreateGroupDto } from './dto/create-group.dto';
+import { UpdateGroupDto } from './dto/update-group.dto';
 
 @Injectable()
 export class GroupsService {
@@ -42,53 +43,21 @@ export class GroupsService {
   }
 
   async create(groupData: CreateGroupDto, creatorId: string): Promise<Group> {
-    // Validate minimum members requirement
     if (!groupData.memberIds || groupData.memberIds.length < 2) {
       throw new BadRequestException('A group must have at least 2 members');
     }
 
-    // Validate UUID format
-    const isValidUUID = (uuid: string) => {
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      return uuidRegex.test(uuid);
-    };
-
-    if (!groupData.memberIds.every(isValidUUID)) {
-      throw new BadRequestException('Invalid member ID format provided');
-    }
-
-    // Validate creator exists
     const creator = await this.usersService.findOne(creatorId);
     if (!creator) {
       throw new NotFoundException('Creator user not found');
     }
 
-    // Get creator's friends list
-    const friendsList = await this.usersService.getFriendsList(creatorId);
-    const friendIds = friendsList.map(friend => friend.id);
+    await this.validateProspectiveMembers(groupData.memberIds, creatorId);
 
-    // Validate all members exist and are friends with creator
-    for (const memberId of groupData.memberIds) {
-      if (memberId !== creatorId) {  // Skip creator validation
-        const member = await this.usersService.findOne(memberId);
-        if (!member) {
-          throw new BadRequestException(`User with ID ${memberId} does not exist`);
-        }
-        if (!friendIds.includes(memberId)) {
-          throw new BadRequestException(`User with ID ${memberId} is not in your friends list`);
-        }
-        if (!member.isActive) {
-          throw new BadRequestException(`User with ID ${memberId} is not active`);
-        }
-      }
-    }
-
-    // Ensure creator is in members list
     if (!groupData.memberIds.includes(creatorId)) {
       groupData.memberIds.push(creatorId);
     }
 
-    // Get all validated members
     const members = await Promise.all(
       groupData.memberIds.map(id => this.usersService.findOne(id))
     );
@@ -108,36 +77,50 @@ export class GroupsService {
     return this.groupsRepository.save(group);
   }
 
-  async update(id: string, groupData: Group): Promise<Group> {
+  async update(id: string, groupData: UpdateGroupDto, callerId: string): Promise<Group> {
     const group = await this.findOne(id);
-    
-    if (groupData.name) {
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+
+    if (groupData.name !== undefined) {
       group.name = groupData.name;
     }
-    
-    if (groupData.description) {
+
+    if (groupData.description !== undefined) {
       group.description = groupData.description;
     }
-    
-    // Update members if provided
-    if (groupData.members && groupData.members.length > 0) {
+
+    if (groupData.memberIds !== undefined) {
+      await this.validateProspectiveMembers(groupData.memberIds, callerId);
+
+      const uniqueIds = [...new Set(groupData.memberIds)];
+      if (uniqueIds.length < 2) {
+        throw new BadRequestException('A group must have at least 2 unique members');
+      }
+
       group.members = await Promise.all(
-        groupData.members.map(member => this.usersService.findOne(member.id)),
+        uniqueIds.map(memberId => this.usersService.findOne(memberId)),
       );
     }
-    
+
     return this.groupsRepository.save(group);
   }
 
-  async addMember(id: string, userId: string): Promise<Group> {
+  async addMember(id: string, userId: string, callerId: string): Promise<Group> {
     const group = await this.findOne(id);
-    const user = await this.usersService.findOne(userId);
-    
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+
+    await this.validateProspectiveMembers([userId], callerId);
+
     if (!group.members.some(member => member.id === userId)) {
+      const user = await this.usersService.findOne(userId);
       group.members.push(user);
       await this.groupsRepository.save(group);
     }
-    
+
     return this.findOne(id);
   }
 
@@ -149,7 +132,29 @@ export class GroupsService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.groupsRepository.delete(id);
+    await this.groupsRepository.softDelete(id);
+  }
+
+  // Verifies every prospective member (other than the caller themselves) exists,
+  // is active, and is a friend of the caller. Mirrors the invariant create()
+  // enforces, so update()/addMember() can keep it too.
+  private async validateProspectiveMembers(memberIds: string[], callerId: string): Promise<void> {
+    const friendsList = await this.usersService.getFriendsList(callerId);
+    const friendIds = new Set(friendsList.map(friend => friend.id));
+
+    for (const memberId of memberIds) {
+      if (memberId === callerId) continue;
+      const member = await this.usersService.findOne(memberId);
+      if (!member) {
+        throw new BadRequestException(`User with ID ${memberId} does not exist`);
+      }
+      if (!member.isActive) {
+        throw new BadRequestException(`User with ID ${memberId} is not active`);
+      }
+      if (!friendIds.has(memberId)) {
+        throw new BadRequestException(`User with ID ${memberId} is not in your friends list`);
+      }
+    }
   }
 
   async findAllForUser(userId: string): Promise<Group[]> {
