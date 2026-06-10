@@ -1,5 +1,6 @@
 // src/users/entities/user.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToMany, JoinTable, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, Index } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { Expense } from '../../expenses/entities/expense.entity';
 import { Group } from '../../groups/entities/group.entity';
 import { FriendRequest } from './friend-request.entity';
@@ -22,7 +23,13 @@ export class User {
   @Index('IDX_USER_EMAIL_ACTIVE', { unique: true, where: "deleted_at IS NULL" })
   email: string;
 
+  // Stored as a bcrypt hash. @Exclude on serialisation keeps the hash out of
+  // every API response (paired with ClassSerializerInterceptor in main.ts).
+  // Internal callers like AuthService.validateUser still see it directly off
+  // the entity — exclusion only fires when entities are turned into plain
+  // objects for the wire.
   @Column()
+  @Exclude({ toPlainOnly: true })
   password: string;
 
   @Column({ nullable: true })
