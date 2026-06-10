@@ -23,17 +23,28 @@ user, dashboard wiring fixed, and `.env.example` templates + `.gitignore` for
 change**: secrets previously committed still live in git history and must be
 rotated (and optionally scrubbed) before any real deployment (§15).
 
-## Phase 1 — correctness & consistency
+## Phase 1 — correctness & consistency (done)
 
-- Reconcile `src/contracts/` with actual backend responses (the
-  `GroupMember.role` mismatch from §8 is resolved: the field was dropped
-  from the contract since the backend has no per-group role concept).
-- Standardize the paginated-list response shape; remove dead `getUserExpenses`
-  or route it (§6).
-- Resolve React 18 vs 19 (§10); stop hiding build errors in `next.config.mjs` (§11).
-- Harden `GroupsService` (§13): typed update body, consistent validation in
-  `addMember`, decide hard vs soft delete for groups.
-- Lock down CORS for non-local environments (§14).
+All addressed:
+
+- `GroupMember.role` dropped from the frontend contract — the backend has
+  no per-group role concept (§8, merged separately).
+- Dead `getUserExpenses` (and the unused `getExpenseWithParticipants`)
+  removed from `ExpensesService`; the live `GET /expenses/user` returns
+  `{ data, total, page, limit }` (§6).
+- React + ReactDOM upgraded to `^19.0.0` to match the `@types/react: ^19`
+  pins and what Next.js 15 expects; `tsc --noEmit` is clean (§10).
+- `next.config.mjs` no longer hides ESLint or TypeScript errors, and the
+  `./v0-user-next.config` scaffold cruft is gone; `npm run build` is the
+  real check again (§11).
+- `GroupsService` hardened (§13): `update()` takes a typed `UpdateGroupDto`,
+  `addMember()` and `update()` both run the same friendship/active-user
+  validation as `create()` via a shared helper, and `remove()` is now a
+  soft delete (via `@DeleteDateColumn` + migration
+  `1781308800000-AddGroupSoftDelete.ts`).
+- CORS reads allowed origins from `CORS_ORIGINS` (comma-separated env),
+  defaulting to `http://localhost:3000` for dev (§14). Production
+  deployments must set it explicitly.
 
 ## Phase 2 — tests & tooling
 
@@ -54,7 +65,8 @@ Candidates implied by the domain but absent today:
 - **Email** — verification, password reset, friend-request notifications. There is
   a TODO in `users.controller.ts` for a 2FA password-update endpoint.
 - **Group invitations** — currently you can only add existing friends to a group.
-- **Dashboard real numbers** — totals are placeholders / miscounted (see §6).
+- **Dashboard real numbers** — the "My Expenses" / "My Groups" cards show
+  the length of the *recent* list (capped at 5), not actual totals.
 - **Profile/avatar upload** — `avatar` column exists but nothing populates it.
 
 ## Notes for whoever picks this up

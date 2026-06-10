@@ -5,8 +5,7 @@ Next.js 15 (App Router) UI for Soft Split. Read the root `../CLAUDE.md` first, a
 
 ## Stack
 
-- **Next.js 15.1** App Router, **React 18.2** (⚠️ `@types/react` is pinned to v19 —
-  type/runtime mismatch, KNOWN_ISSUES §10)
+- **Next.js 15.1** App Router, **React 19** (runtime + types aligned)
 - **TypeScript**
 - **Tailwind CSS 3** + **Radix UI** primitives — shadcn-style components in
   `components/ui/` (generated, mostly untouched). Use the `cn()` helper from
@@ -16,7 +15,9 @@ Next.js 15 (App Router) UI for Soft Split. Read the root `../CLAUDE.md` first, a
 - **lucide-react** icons, **next-themes** for dark mode, **sonner** + a toast system
 
 The package was scaffolded with v0.dev — `package.json` is still named
-`my-v0-project` and `next.config.mjs` references a non-existent `v0-user-next.config`.
+`my-v0-project` and `app/layout.tsx` metadata still has `generator: 'v0.dev'`
+(see KNOWN_ISSUES §16). The `next.config.mjs` cruft (a no-op import of
+`./v0-user-next.config`) has been removed.
 
 ## Layout
 
@@ -65,14 +66,15 @@ it only bites if `.env.local` is missing (KNOWN_ISSUES §5).
 
 ```bash
 npm run dev      # dev server, http://localhost:3000
-npm run build    # production build — currently IGNORES TS + ESLint errors (§11)
+npm run build    # production build (TS + ESLint errors now fail the build)
 npm run start    # serve the production build
 npm run lint     # next lint
-# there is NO test script — no test framework is set up (§ in KNOWN_ISSUES)
+# there is NO test script — no test framework is set up (KNOWN_ISSUES §12)
 ```
 
-Because `next build` ignores type errors, a green build is **not** proof of
-type-correctness. Run `npx tsc --noEmit` after changing types.
+`npm run build` no longer hides type or lint errors, so a green build also
+implies a clean type-check. `npx tsc --noEmit` is still useful for tighter
+loops while editing types.
 
 ## Conventions
 
