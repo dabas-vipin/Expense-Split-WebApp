@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  api:
+    name: API (build + jest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: soft-split-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: soft-split-api/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+  frontend:
+    name: Frontend (tsc + build + vitest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: soft-split-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: soft-split-frontend/package-lock.json
+      # --legacy-peer-deps: react-day-picker@8.10.1 still declares peer react@^18
+      # even though it works fine with React 19 at runtime.
+      - run: npm ci --legacy-peer-deps
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - run: npm test

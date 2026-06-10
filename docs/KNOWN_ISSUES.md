@@ -14,11 +14,6 @@ Commit `fde5302 feat: optimize expense table and implement SWR` does not add SWR
 there is no `swr` dependency and no `useSWR` usage anywhere. Data fetching is
 manual `useEffect` + `useState`. Either add SWR for real or correct the assumption.
 
-## 12. 🟡 Minimal / missing tests
-
-Frontend has **no** test script and no test framework. Backend has only
-`app.controller.spec.ts` and `expenses/expenses.service.spec.ts`. Balance
-calculation, splitting logic, and auth are all untested.
 
 ## 15. 🟡 Previously committed secrets remain in git history
 
