@@ -71,12 +71,6 @@ it.) Pick one response shape and use it consistently.
 `GET /groups/:id` expects a **group** id, validates UUID, then `findOne` — passing
 a user id returns nothing useful. Should call `GET /groups` or `GET /groups/user`.
 
-## 8. 🟡 `GroupMember.role` doesn't exist server-side
-
-`src/contracts/group.ts` declares `GroupMember.role: 'admin' | 'member'`, but the
-backend `Group.members` are plain `User`s with no per-group role. Either implement
-roles on the backend or drop the field from the contract.
-
 ## 9. 🟡 "SWR" was never actually added
 
 Commit `fde5302 feat: optimize expense table and implement SWR` does not add SWR —
