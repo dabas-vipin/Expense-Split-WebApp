@@ -1,5 +1,5 @@
 // src/groups/groups.service.ts
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Group } from './entities/group.entity';
@@ -78,10 +78,7 @@ export class GroupsService {
   }
 
   async update(id: string, groupData: UpdateGroupDto, callerId: string): Promise<Group> {
-    const group = await this.findOne(id);
-    if (!group) {
-      throw new NotFoundException('Group not found');
-    }
+    const group = await this.assertCallerIsMember(id, callerId);
 
     if (groupData.name !== undefined) {
       group.name = groupData.name;
@@ -108,10 +105,7 @@ export class GroupsService {
   }
 
   async addMember(id: string, userId: string, callerId: string): Promise<Group> {
-    const group = await this.findOne(id);
-    if (!group) {
-      throw new NotFoundException('Group not found');
-    }
+    const group = await this.assertCallerIsMember(id, callerId);
 
     await this.validateProspectiveMembers([userId], callerId);
 
@@ -124,15 +118,34 @@ export class GroupsService {
     return this.findOne(id);
   }
 
-  async removeMember(id: string, userId: string): Promise<Group> {
-    const group = await this.findOne(id);
+  async removeMember(id: string, userId: string, callerId: string): Promise<Group> {
+    const group = await this.assertCallerIsMember(id, callerId);
     group.members = group.members.filter(member => member.id !== userId);
     await this.groupsRepository.save(group);
     return this.findOne(id);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, callerId: string): Promise<void> {
+    await this.assertCallerIsMember(id, callerId);
     await this.groupsRepository.softDelete(id);
+  }
+
+  // Loads a group with its members and verifies the caller belongs to it.
+  // Throws NotFoundException if the group doesn't exist (or is soft-deleted),
+  // ForbiddenException if the caller is not a member. Used by every mutating
+  // operation so unrelated users with a known group UUID can't tamper with it.
+  private async assertCallerIsMember(groupId: string, callerId: string): Promise<Group> {
+    const group = await this.groupsRepository.findOne({
+      where: { id: groupId },
+      relations: ['members'],
+    });
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+    if (!group.members.some(member => member.id === callerId)) {
+      throw new ForbiddenException('You are not a member of this group');
+    }
+    return group;
   }
 
   // Verifies every prospective member (other than the caller themselves) exists,

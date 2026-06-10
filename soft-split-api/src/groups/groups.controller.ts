@@ -59,13 +59,17 @@ export class GroupsController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id/members/:userId')
-  async removeMember(@Param('id') id: string, @Param('userId') userId: string): Promise<Group> {
-    return this.groupsService.removeMember(id, userId);
+  async removeMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Request() req,
+  ): Promise<Group> {
+    return this.groupsService.removeMember(id, userId, req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async remove(@Param('id') id: string): Promise<void> {
-    return this.groupsService.remove(id);
+  async remove(@Param('id') id: string, @Request() req): Promise<void> {
+    return this.groupsService.remove(id, req.user.id);
   }
 }
