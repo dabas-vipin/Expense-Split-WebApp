@@ -1,0 +1,11 @@
+{
+    "permissions": {
+      "allow": [
+        "Bash(npm install)",
+        "Bash(npm run build)",
+        "Bash(npm run migration:run)",
+        "Bash(npm test)",
+        "Bash(npx tsc --noEmit)"
+      ]
+    }
+  }

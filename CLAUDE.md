@@ -82,17 +82,55 @@ npm run dev                # http://localhost:3000
    debug logging (some of it leaks secrets — see KNOWN_ISSUES). If you touch a
    file that has gratuitous logging, removing it is welcome.
 6. **Verify before claiming done.** Backend: `npm run build` and `npm test`.
-   Frontend: `npm run build` (note: it currently ignores TS/lint errors — see
-   KNOWN_ISSUES §11, so a green build is not proof of type-correctness; run
-   `npx tsc --noEmit` if you changed types).
+   Frontend: `npm run build` (which now fails on TS or lint errors); use
+   `npx tsc --noEmit` for tighter loops while editing types.
 7. **Match the surrounding style.** NestJS conventions in the API; Tailwind +
    Radix UI (shadcn-style components in `components/ui/`) with the `cn()` helper
    in the frontend. No raw CSS.
-8. **Secrets:** `.env` and `.env.local` are committed to the repo (a known
-   issue). Don't add real secrets; don't treat the committed ones as safe.
+8. **Secrets:** `.env*` files are gitignored (with `.env.example` tracked as
+   templates). Don't add real secrets to anything tracked. Earlier commits
+   still contain the original `.env` contents — treat those values as
+   compromised (see `KNOWN_ISSUES.md` §15).
 
 ## Commit / PR conventions
 
 - Branch off `main`; the existing history uses Conventional-Commit-style
   subjects (`feat:`, etc.) and merges via PR.
 - Run builds/tests in any package you touched before concluding.
+
+## Working from high-level commands (autonomous-feature workflow)
+
+The user prefers a "one high-level command, you deliver a PR" loop. When a
+prompt like "implement Phase 1 §8" arrives:
+
+1. **Scope check first.** If the task involves product judgement that isn't
+   already pinned down (a button vs a flow, partial settlements, etc.), ask
+   one focused clarifying question before starting. Otherwise proceed.
+2. **Branch, don't touch `main`.** Create a feature branch off `main` with a
+   conventional name (`fix/...`, `feat/...`). Never commit or push to `main`.
+3. **Plan before non-trivial execution.** For anything beyond a one-file
+   change, call the `Plan` subagent to produce a step list and surface
+   tradeoffs, then execute against it. Use `Explore` for broad codebase
+   research (>3 lookups). Use `isolation: "worktree"` when parallelising
+   independent work.
+4. **Keep docs honest in the same change.** Update `docs/KNOWN_ISSUES.md`,
+   `docs/ROADMAP.md`, `docs/API.md`, `docs/DATA_MODEL.md`, and the per-package
+   `CLAUDE.md` files to reflect what changed. Don't ship code + stale docs.
+5. **Verification gates before claiming done:**
+   - API: `npm run build` + `npm test` green. If you touched migrations,
+     `npm run migration:run` against a clean DB.
+   - Frontend: `npm run build` green (it now surfaces TS + lint errors);
+     `npx tsc --noEmit` for tighter feedback while editing types.
+   - End-to-end smoke: `docker build -t softsplit . && docker run --rm -d
+     --name softsplit -p 3000:3000 -p 7000:7000 softsplit` and curl both
+     ports when the change is user-facing.
+6. **Open a PR, don't merge.** Push the branch and open a PR with a Summary
+   (1–3 bullets) + Test plan checklist. Return the PR URL.
+7. **Run `/security-review` on the branch yourself** if the change touches
+   auth, secrets, validation, or external input. It's a skill I can invoke.
+8. **`/ultrareview` is user-triggered** — I cannot launch it. After I push
+   a branch, prompt the user with `/ultrareview <PR#>` if a multi-agent
+   review would help (auth changes, schema changes, large refactors).
+9. **Pause for review when work changes shared state.** Force-push, history
+   rewrite, dropping tables, modifying CI, or anything visible to others
+   stops for explicit confirmation regardless of permission settings.
