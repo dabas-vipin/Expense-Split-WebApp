@@ -1,10 +1,11 @@
 // src/expenses/expenses.service.ts
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, Not, IsNull } from 'typeorm';
+import { Repository, DataSource, Not, IsNull, In } from 'typeorm';
 import { Expense } from './entities/expense.entity';
 import { UsersService } from '../users/users.service';
 import { GroupsService } from '../groups/groups.service';
+import { SettlementsService } from '../settlements/settlements.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 
@@ -15,6 +16,7 @@ export class ExpensesService {
     private expensesRepository: Repository<Expense>,
     private usersService: UsersService,
     private groupsService: GroupsService,
+    private settlementsService: SettlementsService,
     private dataSource: DataSource
   ) {}
 
@@ -194,29 +196,38 @@ export class ExpensesService {
   }
 
   async getBalances(userId: string, groupId?: string): Promise<any> {
-    const query = this.expensesRepository
+    // Step 1: collect IDs of expenses involving this user. A direct
+    // leftJoinAndSelect with `WHERE participants.id = :userId` filters the
+    // joined participants array to only the matching participant — which made
+    // splitAmount = amount / 1 instead of amount / N. Splitting the lookup
+    // into "find ids" then "load full rows" sidesteps that.
+    const idQuery = this.expensesRepository
       .createQueryBuilder('expense')
-      .leftJoinAndSelect('expense.paidBy', 'paidBy')
-      .leftJoinAndSelect('expense.participants', 'participants')
-      .leftJoinAndSelect('expense.group', 'group')
+      .leftJoin('expense.paidBy', 'paidBy')
+      .leftJoin('expense.participants', 'participants')
       .where('(paidBy.id = :userId OR participants.id = :userId)', { userId })
       .andWhere('expense.amount IS NOT NULL')
-      .andWhere('paidBy.isActive = true');
+      .andWhere('paidBy.isActive = true')
+      .select('DISTINCT expense.id', 'id');
 
     if (groupId) {
-      query.andWhere('group.id = :groupId', { groupId });
+      idQuery
+        .leftJoin('expense.group', 'group')
+        .andWhere('group.id = :groupId', { groupId });
     }
 
-    const expenses = await query.getMany();
+    const idRows = await idQuery.getRawMany<{ id: string }>();
+    const ids = idRows.map((row) => row.id);
+    const expenses = ids.length
+      ? await this.expensesRepository.find({
+          where: { id: In(ids) },
+          relations: ['paidBy', 'participants', 'group'],
+        })
+      : [];
 
-    // Return empty array if no expenses
-    if (!expenses || expenses.length === 0) {
-      return [];
-    }
+    const balances: Record<string, Record<string, number>> = {};
 
-    const balances = {};
-
-    for (const expense of expenses) {
+    for (const expense of expenses || []) {
       if (!expense.amount || !expense.paidBy || !expense.participants.length) {
         continue; // Skip invalid expenses
       }
@@ -256,6 +267,28 @@ export class ExpensesService {
           }
           break;
       }
+    }
+
+    // Apply settlements only against the cross-group view. Per-group balances
+    // intentionally don't include them because settlements aren't group-scoped.
+    if (!groupId) {
+      const settlements =
+        await this.settlementsService.findInvolvingUser(userId);
+      for (const settlement of settlements) {
+        const payerId = settlement.payer.id;
+        const payeeId = settlement.payee.id;
+        const amount = parseFloat(settlement.amount.toString());
+        if (!amount) continue;
+        if (!balances[payerId]) balances[payerId] = {};
+        if (!balances[payeeId]) balances[payeeId] = {};
+        // Same direction as an expense: the payer becomes more of a creditor
+        // by the settled amount (their existing debt to payee shrinks).
+        this.updateBalance(balances, payerId, payeeId, amount);
+      }
+    }
+
+    if (!balances[userId] || Object.keys(balances[userId]).length === 0) {
+      return [];
     }
 
     return await this.simplifyBalances(balances, userId);

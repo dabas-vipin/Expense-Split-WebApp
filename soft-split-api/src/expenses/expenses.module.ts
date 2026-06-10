@@ -6,12 +6,14 @@ import { ExpensesService } from './expenses.service';
 import { ExpensesController } from './expenses.controller';
 import { UsersModule } from '../users/users.module';
 import { GroupsModule } from '../groups/groups.module';
+import { SettlementsModule } from '../settlements/settlements.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Expense]), 
+    TypeOrmModule.forFeature([Expense]),
     UsersModule,
-    GroupsModule
+    GroupsModule,
+    SettlementsModule,
   ],
   providers: [ExpensesService],
   controllers: [ExpensesController],

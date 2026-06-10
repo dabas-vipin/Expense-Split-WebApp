@@ -18,6 +18,7 @@ import { Plus, DollarSign, Users, ArrowRight, UserCheck } from "lucide-react";
 import { ExpenseCard } from "@/components/expense-card";
 import { GroupCard } from "@/components/group-card";
 import { BalanceSummary } from "@/components/balance-summary";
+import { ActivityFeed } from "@/components/activity-feed";
 import { Expense, Group, Balance, User } from "@/src/contracts";
 
 export default function DashboardPage() {
@@ -148,32 +149,36 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <UserCheck className="mr-2 h-5 w-5" />
-            Friends
-          </CardTitle>
-          <CardDescription>Your connected friends</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {friends.slice(0, 5).map((friend: any) => (
-            <div key={friend.id} className="flex items-center justify-between py-2">
-              <div>
-                <p className="font-medium">{friend.name}</p>
-                <p className="text-sm text-muted-foreground">{friend.email}</p>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <UserCheck className="mr-2 h-5 w-5" />
+              Friends
+            </CardTitle>
+            <CardDescription>Your connected friends</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {friends.slice(0, 5).map((friend: any) => (
+              <div key={friend.id} className="flex items-center justify-between py-2">
+                <div>
+                  <p className="font-medium">{friend.name}</p>
+                  <p className="text-sm text-muted-foreground">{friend.email}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </CardContent>
-        <CardFooter>
-          <Link href="/friends" className="w-full">
-            <Button variant="outline" className="w-full">
-              View All Friends
-            </Button>
-          </Link>
-        </CardFooter>
-      </Card>
+            ))}
+          </CardContent>
+          <CardFooter>
+            <Link href="/friends" className="w-full">
+              <Button variant="outline" className="w-full">
+                View All Friends
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
+
+        <ActivityFeed limit={5} />
+      </div>
     </div>
   );
 }
