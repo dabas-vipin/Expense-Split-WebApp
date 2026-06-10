@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Expense } from './entities/expense.entity';
 import { UsersService } from '../users/users.service';
 import { GroupsService } from '../groups/groups.service';
+import { SettlementsService } from '../settlements/settlements.service';
 import { DataSource } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 
@@ -17,6 +18,10 @@ describe('ExpensesService - Input Validation', () => {
 
   const mockGroupsService = {
     findOne: jest.fn().mockResolvedValue({ id: '1', members: [{ id: '1' }] }),
+  };
+
+  const mockSettlementsService = {
+    findInvolvingUser: jest.fn().mockResolvedValue([]),
   };
 
   const mockDataSource = {
@@ -42,6 +47,7 @@ describe('ExpensesService - Input Validation', () => {
         },
         { provide: UsersService, useValue: mockUsersService },
         { provide: GroupsService, useValue: mockGroupsService },
+        { provide: SettlementsService, useValue: mockSettlementsService },
         { provide: DataSource, useValue: mockDataSource },
       ],
     }).compile();

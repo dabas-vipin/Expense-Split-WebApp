@@ -10,6 +10,8 @@ import { ExpensesModule } from './expenses/expenses.module';
 import { GroupsModule } from './groups/groups.module';
 import { AuthModule } from './auth/auth.module';
 import { FiltersModule } from './filters/filters.module';
+import { SettlementsModule } from './settlements/settlements.module';
+import { ActivityModule } from './activity/activity.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { FiltersModule } from './filters/filters.module';
     GroupsModule,
     AuthModule,
     FiltersModule,
+    SettlementsModule,
+    ActivityModule,
   ],
   controllers: [AppController],
   providers: [AppService],
