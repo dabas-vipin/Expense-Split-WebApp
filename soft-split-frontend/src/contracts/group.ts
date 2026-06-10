@@ -11,5 +11,4 @@ export interface GroupMember {
   id: string
   name: string
   avatar?: string
-  role: 'admin' | 'member'
-} 
+}
