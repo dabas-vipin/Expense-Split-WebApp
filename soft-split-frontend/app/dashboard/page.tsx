@@ -34,12 +34,12 @@ export default function DashboardPage() {
         setLoading(true);
         const [expensesResponse, groupsResponse, balancesResponse, friendsResponse] = await Promise.all([
           api.get("/expenses/user", { params: { limit: 5, page: 1 } }),
-          api.get(user?.isAdmin ? "/groups" : `/groups/${user?.id}`),
+          api.get("/groups"),
           api.get("/expenses/balances"),
           api.get("/users/friends/list")
         ]);
 
-        setRecentExpenses(expensesResponse.data?.items || []);
+        setRecentExpenses(expensesResponse.data?.data || []);
         setGroups(groupsResponse.data || []);
         setBalances(balancesResponse.data || []);
         setFriends(friendsResponse.data);

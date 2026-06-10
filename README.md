@@ -35,11 +35,18 @@ cd soft-split-api
 npm install
 ```
 
-3. Create a `.env` file with the following variables:
+3. Create a `.env` file (copy `.env.example`) with the following variables:
 ```
-DATABASE_URL=your_database_url
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=your_db_user
+DB_PASSWORD=your_db_password
+DB_DATABASE=expense_sharing
+DB_SSL=false
 JWT_SECRET=your_jwt_secret
+ADMIN_SECRET=your_admin_secret
 PORT=7000
+NODE_ENV=development
 ```
 
 4. Run migrations:

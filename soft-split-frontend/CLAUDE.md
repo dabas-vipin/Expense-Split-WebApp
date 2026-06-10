@@ -46,9 +46,8 @@ hooks/                use-mobile, use-toast
   attaches the `localStorage` token; a **response interceptor** handles 401
   (clears token, redirects to `/login`), 403/422, and network errors with toasts.
 - `contexts/auth-context.tsx` (`useAuth()`) owns `user` / `token`. On mount it
-  reads the token and calls `GET /auth/profile`. ⚠️ that endpoint returns only
-  `{id, email, isAdmin}` — **no `name`** — so `user.name` is undefined after a page
-  refresh until the user logs in again (KNOWN_ISSUES §4).
+  reads the token and calls `GET /auth/profile`, which returns the full user
+  (`id, name, email, avatar, isAdmin`), so `user` survives a page refresh.
 - Pages fetch with `useEffect` + `useState` + `api.get(...)`. Note: the commit
   "implement SWR" did **not** add SWR — there is no SWR dependency or usage
   (KNOWN_ISSUES §9). Don't assume a cache layer exists.

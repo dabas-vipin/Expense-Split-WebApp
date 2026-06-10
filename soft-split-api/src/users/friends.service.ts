@@ -38,8 +38,6 @@ export class FriendsService {
     if (!receiverEmail) {
       throw new BadRequestException('Receiver email is required');
     }
-    
-    console.log(`Sending friend request from ${senderId} to ${receiverEmail}`);
 
     const sender = await this.usersRepository.findOne({
       where: { id: senderId, isActive: true }
@@ -92,10 +90,7 @@ export class FriendsService {
       status: 'pending'
     });
 
-    const savedRequest = await this.friendRequestRepository.save(request);
-    console.log('Saved friend request:', savedRequest);
-
-    return savedRequest;
+    return this.friendRequestRepository.save(request);
   }
 
   async respondToFriendRequest(userId: string, requestId: string, accept: boolean) {

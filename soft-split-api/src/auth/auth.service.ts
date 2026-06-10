@@ -29,18 +29,29 @@ export class AuthService {
   }
 
   async login(user: any) {
-    console.log('Logging in user:', user);
     const payload = { email: user.email, sub: user.id };
-    console.log('Creating JWT with payload:', payload);
     const token = this.jwtService.sign(payload);
-    console.log('Generated token:', token);
     return {
       access_token: token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
+      user: this.toAuthUser(user),
+    };
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return this.toAuthUser(user);
+  }
+
+  private toAuthUser(user: User) {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      isAdmin: user.isAdmin,
     };
   }
 

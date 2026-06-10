@@ -8,9 +8,9 @@ context, and `../docs/KNOWN_ISSUES.md` for active bugs (several live in this pac
 - **NestJS 10**, TypeScript, Express platform
 - **TypeORM 0.3** over **PostgreSQL** (`pg` driver)
 - **Auth:** `@nestjs/jwt` + `passport-jwt`, `bcrypt` for hashing
-- **Validation:** `class-validator` / `class-transformer` decorators on DTOs
-  — but note there is **no global `ValidationPipe` registered** (KNOWN_ISSUES §2),
-  so those decorators currently do nothing at runtime.
+- **Validation:** `class-validator` / `class-transformer` decorators on DTOs,
+  enforced by a global `ValidationPipe` registered in `main.ts` with
+  `whitelist: true`, `transform: true`, and a 422 status for validation errors.
 
 ## Layout
 
@@ -19,14 +19,14 @@ src/
   main.ts                 Bootstrap: CORS open, global HttpExceptionFilter, port 7000
   app.module.ts           Root module; loads ConfigModule + TypeOrmModule + feature modules
   app.controller.ts       GET /  -> "Hello" health-ish endpoint
-  config/database.config.ts   TypeORM connection options — HARDCODED, ignores .env (see §1)
+  config/database.config.ts   TypeORM connection options, env-driven via ConfigService
   auth/                   login, register, JWT strategy + guard, profile
   users/                  user CRUD (soft-delete) + friends.service (friend requests)
   groups/                 group CRUD + membership
   expenses/               expense CRUD, pagination, balance calculation
   filters/                HttpExceptionFilter (logs full request + stack)
   migrations/             TypeORM migrations — the source of truth for schema
-typeorm.config.ts         DataSource used by the migration CLI scripts (also hardcoded)
+typeorm.config.ts         DataSource used by the migration CLI scripts (reads process.env)
 ```
 
 Every feature module follows the standard Nest shape: `*.module.ts`,
@@ -58,10 +58,10 @@ Full table in `../docs/API.md`. Almost everything is behind `JwtAuthGuard`.
 - `npm run migration:generate` diffs entities against the DB and writes a migration
   to `src/migrations/MigrationXXXX.ts`.
 - `npm run migration:run` / `npm run migration:revert` apply / roll back.
-- ⚠️ **Connection config is hardcoded** in `src/config/database.config.ts` (runtime)
-  and `typeorm.config.ts` (CLI), and the two disagree with each other *and* with
-  `.env`. See `../docs/KNOWN_ISSUES.md` §1 — fixing this to read from `ConfigService`
-  is the recommended first task.
+- Connection settings come from environment variables: `src/config/database.config.ts`
+  reads them via `ConfigService` (runtime) and `typeorm.config.ts` reads `process.env`
+  directly (CLI). Both expect `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`,
+  `DB_DATABASE`, optionally `DB_SSL` (`true`/`false`). See `.env.example`.
 
 ## Commands
 
@@ -85,7 +85,8 @@ Test coverage is thin: only `app.controller.spec.ts` and
   delegating — follow that pattern.
 - Use `dataSource.transaction(...)` for multi-step writes (see `expenses.service.create`
   and `users.service.softDelete` for the established pattern).
-- New DTOs go in `dto/` with `class-validator` decorators — and if you want them
-  enforced, register the global `ValidationPipe` (KNOWN_ISSUES §2).
+- New DTOs go in `dto/` with `class-validator` decorators; they are enforced by
+  the global `ValidationPipe` registered in `main.ts` (rejects extra fields,
+  responds 422 on failure).
 - Throw Nest HTTP exceptions (`BadRequestException`, `ForbiddenException`, …);
   `HttpExceptionFilter` shapes the JSON response.
