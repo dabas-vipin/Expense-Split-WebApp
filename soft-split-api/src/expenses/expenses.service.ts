@@ -306,45 +306,4 @@ export class ExpensesService {
     const group = await this.groupsService.findOne(groupId);
     return group.members.some(member => member.id === userId);
   }
-
-  async getUserExpenses(userId: string, options: { page: number; limit: number; groupId?: string; search?: string }) {
-    const queryBuilder = this.expensesRepository
-      .createQueryBuilder('expense')
-      .leftJoinAndSelect('expense.paidBy', 'paidBy')
-      .leftJoinAndSelect('expense.participants', 'participants')
-      .leftJoinAndSelect('expense.group', 'group')
-      .where('(paidBy.id = :userId OR participants.id = :userId)', { userId })
-      .orderBy('expense.date', 'DESC');
-
-    if (options.groupId) {
-      queryBuilder.andWhere('group.id = :groupId', { groupId: options.groupId });
-    }
-
-    if (options.search) {
-      queryBuilder.andWhere('expense.description ILIKE :search', { search: `%${options.search}%` });
-    }
-
-    const [items, total] = await queryBuilder
-      .skip((options.page - 1) * options.limit)
-      .take(options.limit)
-      .getManyAndCount();
-
-    return {
-      items,
-      meta: {
-        total,
-        page: options.page,
-        limit: options.limit,
-        totalPages: Math.ceil(total / options.limit)
-      }
-    };
-  }
-
-  async getExpenseWithParticipants(expenseId: string) {
-    return this.expensesRepository.findOne({
-      where: { id: expenseId },
-      relations: ['participants', 'paidBy'],
-      withDeleted: true // Include soft-deleted users
-    });
-  }
 }
