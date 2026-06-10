@@ -8,14 +8,6 @@ Severity: 🔴 blocker · 🟠 bug · 🟡 cleanup / risk
 
 ---
 
-## 5. 🟡 API base URL fallback is wrong
-
-`soft-split-frontend/lib/api.ts` falls back to `http://localhost:7000/api`, but
-the backend has **no `/api` prefix**. `.env.local` correctly sets
-`http://localhost:7000`, so it works in practice — but the fallback bites if
-`.env.local` is missing. Either fix the fallback or add `app.setGlobalPrefix('api')`
-in `main.ts` and update `.env.local`.
-
 ## 9. 🟡 "SWR" was never actually added
 
 Commit `fde5302 feat: optimize expense table and implement SWR` does not add SWR —
@@ -37,7 +29,3 @@ secret, DB password) and `soft-split-frontend/.env.local` still live in earlier
 commits. Treat those values as compromised: rotate them in any real deployment, and
 scrub history (git-filter-repo / BFG + force-push) if the repo is ever made public.
 
-## 16. 🟡 Leftover scaffold identifiers
-
-`soft-split-frontend/package.json` is still named `my-v0-project`; `app/layout.tsx`
-metadata has `generator: 'v0.dev'`; a stray `frontend_output.log` is committed.

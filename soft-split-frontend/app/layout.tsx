@@ -14,7 +14,6 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata = {
   title: "SoftSplit - Expense Sharing Made Easy",
   description: "Split expenses with friends, roommates, and groups easily",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -49,7 +48,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-
-
-import './globals.css'
