@@ -25,8 +25,9 @@ rotated (and optionally scrubbed) before any real deployment (§15).
 
 ## Phase 1 — correctness & consistency
 
-- Reconcile `src/contracts/` with actual backend responses; decide on
-  `GroupMember.role` (§8) — implement group roles or drop the field.
+- Reconcile `src/contracts/` with actual backend responses (the
+  `GroupMember.role` mismatch from §8 is resolved: the field was dropped
+  from the contract since the backend has no per-group role concept).
 - Standardize the paginated-list response shape; remove dead `getUserExpenses`
   or route it (§6).
 - Resolve React 18 vs 19 (§10); stop hiding build errors in `next.config.mjs` (§11).

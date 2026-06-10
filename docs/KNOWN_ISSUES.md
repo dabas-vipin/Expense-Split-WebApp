@@ -23,12 +23,6 @@ in `main.ts` and update `.env.local`.
 `getUserExpenses` is **dead code** — no controller route calls it. Either remove it
 or route it, and standardize on one paginated-list shape across the API.
 
-## 8. 🟡 `GroupMember.role` doesn't exist server-side
-
-`src/contracts/group.ts` declares `GroupMember.role: 'admin' | 'member'`, but the
-backend `Group.members` are plain `User`s with no per-group role. Either implement
-roles on the backend or drop the field from the contract.
-
 ## 9. 🟡 "SWR" was never actually added
 
 Commit `fde5302 feat: optimize expense table and implement SWR` does not add SWR —
