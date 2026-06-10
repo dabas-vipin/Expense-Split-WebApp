@@ -81,10 +81,15 @@ All addressed:
   by 1. Now fetches expense IDs first then loads each expense with all
   participants.
 
+- **Debt simplification** — `GET /expenses/balances/simplified?groupId=X`
+  runs greedy min-cash-flow against the group's expense graph and
+  returns the minimum set of payer → payee transactions that settles
+  every member. The `A → B → C` chain collapses to a single `A → C`.
+  Surfaced as a "Simplified payments" card at the top of the per-group
+  view of `/balances`.
+
 ### Not yet built
 
-- **Debt simplification** — minimize the number of transactions across a group
-  (current `simplifyBalances` only nets pairwise from one user's view).
 - **Expense detail richness** — categories, receipts/attachments, notes, currency.
 - **Richer activity events** — only `settlement` is emitted today. Add
   friend-accept, expense-created, group-mutation, etc.
