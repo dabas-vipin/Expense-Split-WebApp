@@ -27,6 +27,7 @@ import { Edit, Trash, ArrowLeft, Plus, Users } from "lucide-react"
 import { Group } from "@/src/contracts/group"
 import { BalanceResponse } from "@/src/contracts/user"
 import { Expense } from "@/src/contracts/expense"
+import { InviteToGroupModal } from "@/components/invite-to-group-modal"
 
 interface AddExpenseFormData {
   description: string;
@@ -204,13 +205,17 @@ export default function GroupDetailPage() {
                   <CardTitle className="text-2xl">{group.name}</CardTitle>
                   {group.description && <CardDescription>{group.description}</CardDescription>}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Link href={`/expenses/new?groupId=${id}`}>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
                       Add Expense
                     </Button>
                   </Link>
+                  <InviteToGroupModal
+                    groupId={String(id)}
+                    groupName={group.name}
+                  />
                   <Button variant="outline" onClick={() => router.push(`/groups/${id}/edit`)}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
