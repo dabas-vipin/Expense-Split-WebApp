@@ -87,12 +87,18 @@ All addressed:
   every member. The `A → B → C` chain collapses to a single `A → C`.
   Surfaced as a "Simplified payments" card at the top of the per-group
   view of `/balances`.
+- **Group invitations** — `GroupInvitation` entity + migration with a
+  partial unique index on pending rows. Any group member can invite a
+  Soft Split user by email (no friendship required, unlike addMember).
+  Invitee accepts/declines from a "Group invitations" card on
+  `/friends`. Accepting calls `addMemberFromInvitation` which skips the
+  friends-only gate, because the invitation itself is the consent.
 
 ### Not yet built
 
 - **Expense detail richness** — categories, receipts/attachments, notes, currency.
 - **Richer activity events** — only `settlement` is emitted today. Add
-  friend-accept, expense-created, group-mutation, etc.
+  friend-accept, expense-created, group-mutation, group-invitation, etc.
 - **Email** — verification, password reset, friend-request notifications. There is
   a TODO in `users.controller.ts` for a 2FA password-update endpoint.
 - **Group invitations** — currently you can only add existing friends to a group.
