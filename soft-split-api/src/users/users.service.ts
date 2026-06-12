@@ -1,11 +1,22 @@
 // src/users/users.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { DataSource } from 'typeorm';
+import { UpdateMeDto } from './dto/update-me.dto';
+import { DataSource, Not } from 'typeorm';
 import { FriendRequest } from '../users/entities/friend-request.entity';
+import * as bcrypt from 'bcrypt';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Configurable via env so the tests can use a tmpdir.
+const UPLOADS_DIR = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.resolve(process.cwd(), 'uploads');
+const AVATAR_DIR = path.join(UPLOADS_DIR, 'avatars');
+const AVATAR_URL_PREFIX = '/uploads/avatars';
 
 @Injectable()
 export class UsersService {
@@ -15,7 +26,15 @@ export class UsersService {
     @InjectRepository(FriendRequest)
     private friendRequestRepository: Repository<FriendRequest>,
     private dataSource: DataSource
-  ) {}
+  ) {
+    // Best-effort ensure the upload dir exists at boot. Per-write mkdir is
+    // also defensive, but pre-creating keeps the first write fast.
+    try {
+      fs.mkdirSync(AVATAR_DIR, { recursive: true });
+    } catch {
+      // ignored — handled at write time
+    }
+  }
 
   async findAll(): Promise<User[]> {
     return this.usersRepository.find();
@@ -37,6 +56,87 @@ export class UsersService {
   async update(id: string, userData: UpdateUserDto): Promise<User> {
     await this.usersRepository.update(id, userData);
     return this.findOne(id);
+  }
+
+  /**
+   * Update the calling user's own profile. Validates email uniqueness if the
+   * email is changing, and only updates fields explicitly provided.
+   */
+  async updateMe(userId: string, dto: UpdateMeDto): Promise<User> {
+    const user = await this.findOne(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    if (dto.email && dto.email !== user.email) {
+      const collision = await this.usersRepository.findOne({
+        where: { email: dto.email, isActive: true, id: Not(userId) },
+      });
+      if (collision) {
+        throw new BadRequestException('Email already in use');
+      }
+      user.email = dto.email;
+    }
+    if (dto.name !== undefined) user.name = dto.name;
+    if (dto.avatar !== undefined) user.avatar = dto.avatar;
+
+    return this.usersRepository.save(user);
+  }
+
+  /**
+   * Change the user's password. Verifies the current password against the
+   * stored bcrypt hash, then hashes and stores the new password.
+   */
+  async updatePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    // Need the password column on the entity, which @Exclude only suppresses
+    // from serialisation — it's still returned by find() to internal callers.
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const ok = await bcrypt.compare(currentPassword, user.password);
+    if (!ok) throw new UnauthorizedException('Current password is incorrect');
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await this.usersRepository.save(user);
+  }
+
+  /**
+   * Save an uploaded avatar to disk and update the user's avatar URL. Returns
+   * the updated user. Caller is responsible for validating the file (size,
+   * mime type) — usually via Multer's limits / fileFilter on the controller.
+   */
+  async saveAvatar(
+    userId: string,
+    buffer: Buffer,
+    mimeType: string,
+  ): Promise<User> {
+    const user = await this.findOne(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    const ext = ({
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    } as Record<string, string>)[mimeType];
+    if (!ext) {
+      throw new BadRequestException(
+        'Unsupported image type — use PNG, JPEG, WEBP, or GIF',
+      );
+    }
+
+    fs.mkdirSync(AVATAR_DIR, { recursive: true });
+    const filename = `${userId}.${ext}`;
+    const filepath = path.join(AVATAR_DIR, filename);
+    fs.writeFileSync(filepath, buffer);
+
+    // Cache-bust by appending the current timestamp; clients see a new URL
+    // on every upload even though the file name is stable.
+    user.avatar = `${AVATAR_URL_PREFIX}/${filename}?v=${Date.now()}`;
+    return this.usersRepository.save(user);
   }
 
   async remove(id: string): Promise<void> {

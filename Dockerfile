@@ -44,7 +44,12 @@ ENV DB_HOST=localhost \
     JWT_SECRET=dev_jwt_secret_change_in_production \
     ADMIN_SECRET=dev_admin_secret_change_in_production \
     PORT=7000 \
-    NODE_ENV=development
+    NODE_ENV=development \
+    UPLOADS_DIR=/app/api/uploads \
+    FRONTEND_URL=http://localhost:3000
+
+# Pre-create the upload directory so the API's first write doesn't have to.
+RUN mkdir -p /app/api/uploads/avatars
 
 WORKDIR /app
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

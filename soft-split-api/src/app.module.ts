@@ -5,6 +5,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { databaseConfig } from './config/database.config';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { UsersModule } from './users/users.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { GroupsModule } from './groups/groups.module';
@@ -23,6 +25,15 @@ import { GroupInvitationsModule } from './group-invitations/group-invitations.mo
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => databaseConfig(configService),
+    }),
+    // Serve user-uploaded files (avatars, ...) under /uploads. Path mirrors
+    // what UsersService writes to.
+    ServeStaticModule.forRoot({
+      rootPath: process.env.UPLOADS_DIR
+        ? join(process.env.UPLOADS_DIR)
+        : join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
+      serveStaticOptions: { fallthrough: true },
     }),
     UsersModule,
     ExpensesModule,
