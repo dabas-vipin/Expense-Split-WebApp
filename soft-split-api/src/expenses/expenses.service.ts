@@ -6,6 +6,7 @@ import { Expense } from './entities/expense.entity';
 import { UsersService } from '../users/users.service';
 import { GroupsService } from '../groups/groups.service';
 import { SettlementsService } from '../settlements/settlements.service';
+import { ActivityService } from '../activity/activity.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { greedyMinCashFlow } from './balance-simplification';
@@ -18,6 +19,7 @@ export class ExpensesService {
     private usersService: UsersService,
     private groupsService: GroupsService,
     private settlementsService: SettlementsService,
+    private activityService: ActivityService,
     private dataSource: DataSource
   ) {}
 
@@ -72,7 +74,7 @@ export class ExpensesService {
   }
 
   async create(expenseData: CreateExpenseDto): Promise<Expense> {
-    return this.dataSource.transaction(async manager => {
+    const saved = await this.dataSource.transaction(async manager => {
       // Validate split details
       if (expenseData.splitType === 'percentage' && expenseData.splitDetails) {
         const totalPercentage = Object.values(expenseData.splitDetails).reduce((sum, val) => sum + val, 0);
@@ -141,6 +143,33 @@ export class ExpensesService {
 
       return manager.save(Expense, expense);
     });
+
+    // Activity feed: emit one `expense_created` event per non-payer
+    // participant. With actor=payer + recipient=participant, every involved
+    // user sees the event in their /activity feed via the standard
+    // actor.id = me OR recipient.id = me filter. Failure is non-fatal —
+    // the expense is already persisted and shouldn't roll back over a log.
+    if (saved.paidBy && saved.participants?.length) {
+      const description = saved.description;
+      const amount = saved.amount?.toString() ?? null;
+      const groupId = saved.group?.id ?? null;
+      const groupName = saved.group?.name ?? null;
+      for (const participant of saved.participants) {
+        if (participant.id === saved.paidBy.id) continue;
+        try {
+          await this.activityService.log({
+            type: 'expense_created',
+            actor: saved.paidBy,
+            recipient: participant,
+            payload: { expenseId: saved.id, description, amount, groupId, groupName },
+          });
+        } catch {
+          // non-fatal
+        }
+      }
+    }
+
+    return saved;
   }
 
   async update(id: string, expenseData: UpdateExpenseDto): Promise<Expense> {

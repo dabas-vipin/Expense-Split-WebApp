@@ -7,6 +7,7 @@ import { ExpensesController } from './expenses.controller';
 import { UsersModule } from '../users/users.module';
 import { GroupsModule } from '../groups/groups.module';
 import { SettlementsModule } from '../settlements/settlements.module';
+import { ActivityModule } from '../activity/activity.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { SettlementsModule } from '../settlements/settlements.module';
     UsersModule,
     GroupsModule,
     SettlementsModule,
+    ActivityModule,
   ],
   providers: [ExpensesService],
   controllers: [ExpensesController],

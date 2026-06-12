@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { FriendRequest } from './entities/friend-request.entity';
+import { ActivityService } from '../activity/activity.service';
 
 @Injectable()
 export class FriendsService {
@@ -11,6 +12,7 @@ export class FriendsService {
     private usersRepository: Repository<User>,
     @InjectRepository(FriendRequest)
     private friendRequestRepository: Repository<FriendRequest>,
+    private activityService: ActivityService,
   ) {}
 
   async searchUserByEmail(email: string): Promise<Partial<User>> {
@@ -136,6 +138,24 @@ export class FriendsService {
       receiver.friends.push(sender);
 
       await this.usersRepository.save([sender, receiver]);
+
+      // Activity feed: actor is the accepter (request.receiver), recipient
+      // is the original sender. We use the pre-mutation entities from the
+      // friend-request load (which don't have `friends` populated). Passing
+      // the just-mutated `sender`/`receiver` would feed TypeORM a circular
+      // graph (Alice.friends has Bob, Bob.friends has Alice, ...) and the
+      // PlainObjectToNewEntityTransformer would blow the stack. Logging is
+      // non-fatal regardless — the friendship is already saved.
+      try {
+        await this.activityService.log({
+          type: 'friend_request_accepted',
+          actor: request.receiver,
+          recipient: request.sender,
+          payload: { friendRequestId: request.id },
+        });
+      } catch {
+        // intentionally swallowed
+      }
     } else {
       // If rejected, just update the status
       request.status = 'rejected';

@@ -9,12 +9,14 @@ import { GroupInvitationsService } from './group-invitations.service';
 import { GroupInvitation } from './entities/group-invitation.entity';
 import { GroupsService } from '../groups/groups.service';
 import { UsersService } from '../users/users.service';
+import { ActivityService } from '../activity/activity.service';
 
 describe('GroupInvitationsService', () => {
   let service: GroupInvitationsService;
   let invitationsRepo: any;
   let groupsService: any;
   let usersService: any;
+  let activityService: any;
 
   const alice = { id: 'alice', name: 'Alice', email: 'a@x.com', isActive: true };
   const bob = { id: 'bob', name: 'Bob', email: 'b@x.com', isActive: true };
@@ -47,6 +49,7 @@ describe('GroupInvitationsService', () => {
       findOne: jest.fn(),
       findByEmail: jest.fn(),
     };
+    activityService = { log: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -57,6 +60,7 @@ describe('GroupInvitationsService', () => {
         },
         { provide: GroupsService, useValue: groupsService },
         { provide: UsersService, useValue: usersService },
+        { provide: ActivityService, useValue: activityService },
       ],
     }).compile();
 
