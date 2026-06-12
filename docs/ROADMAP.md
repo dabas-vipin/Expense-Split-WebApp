@@ -98,11 +98,16 @@ All addressed:
   capped recent slice). Zero state renders "0" instead of an empty
   card.
 
+- **Richer activity events** — `friend_request_accepted`,
+  `group_invitation_sent`, `group_invitation_accepted`, and
+  `expense_created` (one event per non-payer participant) now emit
+  alongside `settlement`. ActivityFeed renders each from the current
+  user's perspective; unknown future types fall through to a generic
+  placeholder so older clients don't break.
+
 ### Not yet built
 
 - **Expense detail richness** — categories, receipts/attachments, notes, currency.
-- **Richer activity events** — only `settlement` is emitted today. Add
-  friend-accept, expense-created, group-mutation, group-invitation, etc.
 - **Email** — verification, password reset, friend-request notifications. There is
   a TODO in `users.controller.ts` for a 2FA password-update endpoint.
 - **Group invitations** — currently you can only add existing friends to a group.

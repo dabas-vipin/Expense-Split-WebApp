@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { GroupInvitation } from './entities/group-invitation.entity';
 import { GroupsService } from '../groups/groups.service';
 import { UsersService } from '../users/users.service';
+import { ActivityService } from '../activity/activity.service';
 
 @Injectable()
 export class GroupInvitationsService {
@@ -17,6 +18,7 @@ export class GroupInvitationsService {
     private invitationsRepo: Repository<GroupInvitation>,
     private groupsService: GroupsService,
     private usersService: UsersService,
+    private activityService: ActivityService,
   ) {}
 
   async invite(
@@ -68,7 +70,24 @@ export class GroupInvitationsService {
       invitee,
       status: 'pending',
     });
-    return this.invitationsRepo.save(invitation);
+    const saved = await this.invitationsRepo.save(invitation);
+
+    try {
+      await this.activityService.log({
+        type: 'group_invitation_sent',
+        actor: inviter,
+        recipient: invitee,
+        payload: {
+          invitationId: saved.id,
+          groupId: group.id,
+          groupName: group.name,
+        },
+      });
+    } catch {
+      // non-fatal
+    }
+
+    return saved;
   }
 
   async listPendingForUser(userId: string): Promise<GroupInvitation[]> {
@@ -127,6 +146,21 @@ export class GroupInvitationsService {
         invitation.group.id,
         callerId,
       );
+
+      try {
+        await this.activityService.log({
+          type: 'group_invitation_accepted',
+          actor: invitation.invitee,
+          recipient: invitation.inviter,
+          payload: {
+            invitationId: saved.id,
+            groupId: invitation.group.id,
+            groupName: invitation.group.name,
+          },
+        });
+      } catch {
+        // non-fatal
+      }
     }
 
     return saved;

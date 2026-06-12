@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 import { FriendsService } from './friends.service';
 import { User } from './entities/user.entity';
 import { FriendRequest } from './entities/friend-request.entity';
+import { ActivityService } from '../activity/activity.service';
 
 describe('FriendsService', () => {
   let service: FriendsService;
@@ -38,6 +39,7 @@ describe('FriendsService', () => {
       ),
     };
     const dataSource = { transaction: jest.fn() };
+    const activityService = { log: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -48,6 +50,7 @@ describe('FriendsService', () => {
           useValue: friendRequestRepository,
         },
         { provide: DataSource, useValue: dataSource },
+        { provide: ActivityService, useValue: activityService },
       ],
     }).compile();
 

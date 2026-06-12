@@ -5,6 +5,7 @@ import { Expense } from './entities/expense.entity';
 import { UsersService } from '../users/users.service';
 import { GroupsService } from '../groups/groups.service';
 import { SettlementsService } from '../settlements/settlements.service';
+import { ActivityService } from '../activity/activity.service';
 import { DataSource } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 
@@ -22,6 +23,10 @@ describe('ExpensesService - Input Validation', () => {
 
   const mockSettlementsService = {
     findInvolvingUser: jest.fn().mockResolvedValue([]),
+  };
+
+  const mockActivityService = {
+    log: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockDataSource = {
@@ -48,6 +53,7 @@ describe('ExpensesService - Input Validation', () => {
         { provide: UsersService, useValue: mockUsersService },
         { provide: GroupsService, useValue: mockGroupsService },
         { provide: SettlementsService, useValue: mockSettlementsService },
+        { provide: ActivityService, useValue: mockActivityService },
         { provide: DataSource, useValue: mockDataSource },
       ],
     }).compile();
