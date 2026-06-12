@@ -1,3 +1,14 @@
+export const EXPENSE_CATEGORIES = [
+  'food',
+  'transport',
+  'lodging',
+  'entertainment',
+  'utilities',
+  'shopping',
+  'other',
+] as const
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
+
 export interface Expense {
   id: string
   description: string
@@ -5,6 +16,9 @@ export interface Expense {
   date: string
   splitType: string
   splitDetails: Record<string, number>
+  category: ExpenseCategory
+  currency: string
+  notes: string | null
   paidBy: {
     id: string
     name: string
@@ -43,4 +57,7 @@ export interface ExpenseCreate {
   groupId: string | null
   splitType: string
   splitDetails: Record<string, number>
+  category?: ExpenseCategory
+  currency?: string
+  notes?: string
 } 

@@ -20,6 +20,25 @@ interface ExpenseCardProps {
       name: string
     }
     splitType: string
+    // Optional so older callers keep type-checking; runtime falls back
+    // sensibly when these aren't present.
+    category?: string
+    currency?: string
+  }
+}
+
+// Minimal currency formatter. Falls back to the raw code as a prefix when
+// Intl doesn't know the currency, so cosmetic typos don't crash the UI.
+function formatMoney(amount: number, currency: string | undefined): string {
+  const code = (currency || "USD").toUpperCase()
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: code,
+      currencyDisplay: "narrowSymbol",
+    }).format(amount)
+  } catch {
+    return `${code} ${amount.toFixed(2)}`
   }
 }
 
@@ -45,13 +64,20 @@ export function ExpenseCard({ expense }: ExpenseCardProps) {
               </div>
             </div>
             <div className="text-right">
-              <div className="font-bold">${expense.amount.toFixed(2)}</div>
-              <div className="flex gap-2 justify-end">
+              <div className="font-bold">
+                {formatMoney(expense.amount, expense.currency)}
+              </div>
+              <div className="flex flex-wrap gap-2 justify-end mt-1">
                 {expense.group && (
                   <Badge variant="outline" className="text-xs">
                     {expense.group.name}
                   </Badge>
                 )}
+                {expense.category && expense.category !== "other" ? (
+                  <Badge variant="secondary" className="text-xs capitalize">
+                    {expense.category}
+                  </Badge>
+                ) : null}
                 <Badge variant="secondary" className="text-xs capitalize">
                   {expense.splitType}
                 </Badge>
