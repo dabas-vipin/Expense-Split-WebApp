@@ -9,13 +9,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, PasswordResetToken]),
     UsersModule,
     PassportModule,
     ConfigModule,
+    EmailModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

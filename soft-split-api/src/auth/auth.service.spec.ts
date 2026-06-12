@@ -7,6 +7,8 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { EmailService } from '../email/email.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -14,6 +16,8 @@ describe('AuthService', () => {
   let jwtService: any;
   let configService: any;
   let usersRepository: any;
+  let resetTokensRepo: any;
+  let emailService: any;
 
   beforeEach(async () => {
     usersService = { findOne: jest.fn(), findByEmail: jest.fn() };
@@ -24,6 +28,15 @@ describe('AuthService', () => {
       create: jest.fn((data) => data),
       save: jest.fn((data) => Promise.resolve({ id: 'u1', ...data })),
     };
+    resetTokensRepo = {
+      findOne: jest.fn(),
+      create: jest.fn((data) => data),
+      save: jest.fn((data) => Promise.resolve({ id: 't1', ...data })),
+    };
+    emailService = {
+      sendWelcome: jest.fn().mockResolvedValue(undefined),
+      sendPasswordReset: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -32,6 +45,11 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useValue: configService },
         { provide: getRepositoryToken(User), useValue: usersRepository },
+        {
+          provide: getRepositoryToken(PasswordResetToken),
+          useValue: resetTokensRepo,
+        },
+        { provide: EmailService, useValue: emailService },
       ],
     }).compile();
 

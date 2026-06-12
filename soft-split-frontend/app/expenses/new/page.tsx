@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Group } from "@/src/contracts"
+import { Group, EXPENSE_CATEGORIES, ExpenseCategory } from "@/src/contracts"
 
 export default function NewExpensePage() {
   const router = useRouter()
@@ -33,6 +33,9 @@ export default function NewExpensePage() {
   const [groupId, setGroupId] = useState("")
   const [participants, setParticipants] = useState<string[]>([])
   const [splitDetails, setSplitDetails] = useState<Record<string, number>>({})
+  const [category, setCategory] = useState<ExpenseCategory>("other")
+  const [currency, setCurrency] = useState("USD")
+  const [notes, setNotes] = useState("")
 
   const [groups, setGroups] = useState([])
   const [users, setUsers] = useState([])
@@ -160,6 +163,9 @@ export default function NewExpensePage() {
         groupId: groupId === "no_group" ? null : groupId,
         splitType,
         splitDetails: finalSplitDetails,
+        category,
+        currency: currency.toUpperCase(),
+        notes: notes.trim() ? notes.trim() : undefined,
       }
 
       await api.post("/expenses", expenseData)
@@ -222,17 +228,61 @@ export default function NewExpensePage() {
                 />
               </div>
 
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="amount">Amount</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Currency</Label>
+                  <Input
+                    id="currency"
+                    type="text"
+                    maxLength={3}
+                    placeholder="USD"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+                    className="uppercase"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount ($)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={category}
+                  onValueChange={(v) => setCategory(v as ExpenseCategory)}
+                >
+                  <SelectTrigger id="category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXPENSE_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c.charAt(0).toUpperCase() + c.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes (optional)</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Anything worth remembering about this expense."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  maxLength={1000}
                 />
               </div>
 

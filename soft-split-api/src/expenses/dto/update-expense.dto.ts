@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsNumber, IsDateString, IsArray, IsObject, IsIn } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsDateString, IsArray, IsObject, IsIn, Length, MaxLength } from 'class-validator';
+import { EXPENSE_CATEGORIES, ExpenseCategoryInput } from './create-expense.dto';
 
 export class UpdateExpenseDto {
   @IsOptional()
@@ -25,4 +26,18 @@ export class UpdateExpenseDto {
   @IsOptional()
   @IsObject()
   splitDetails?: Record<string, number>;
+
+  @IsOptional()
+  @IsIn(EXPENSE_CATEGORIES)
+  category?: ExpenseCategoryInput;
+
+  @IsOptional()
+  @IsString()
+  @Length(3, 3)
+  currency?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string | null;
 } 

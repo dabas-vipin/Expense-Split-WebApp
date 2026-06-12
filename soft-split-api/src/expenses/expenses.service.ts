@@ -129,7 +129,10 @@ export class ExpensesService {
         amount: expenseData.amount,
         date: expenseData.date,
         splitType: expenseData.splitType,
-        splitDetails: expenseData.splitDetails
+        splitDetails: expenseData.splitDetails,
+        category: expenseData.category ?? 'other',
+        currency: (expenseData.currency ?? 'USD').toUpperCase(),
+        notes: expenseData.notes ?? null,
       });
 
       expense.paidBy = await this.usersService.findOne(expenseData.paidById);
@@ -206,6 +209,10 @@ export class ExpensesService {
       if (expenseData.date) expense.date = new Date(expenseData.date);
       if (expenseData.splitType) expense.splitType = expenseData.splitType;
       if (expenseData.splitDetails) expense.splitDetails = expenseData.splitDetails;
+      if (expenseData.category) expense.category = expenseData.category;
+      if (expenseData.currency) expense.currency = expenseData.currency.toUpperCase();
+      // `notes` is explicitly nullable — allow callers to clear it.
+      if (expenseData.notes !== undefined) expense.notes = expenseData.notes;
 
       // Update participants if provided
       if (expenseData.participantIds) {
