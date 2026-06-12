@@ -25,6 +25,11 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
+  // The paginated /expenses/user response returns the real count in `total`.
+  // We previously displayed `recentExpenses.length` which was capped at the
+  // page limit (5), so the "My Expenses" card was lying any time the user
+  // had more than 5 expenses.
+  const [expensesTotal, setExpensesTotal] = useState(0);
   const [groups, setGroups] = useState<Group[]>([]);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [friends, setFriends] = useState([]);
@@ -41,6 +46,7 @@ export default function DashboardPage() {
         ]);
 
         setRecentExpenses(expensesResponse.data?.data || []);
+        setExpensesTotal(expensesResponse.data?.total ?? 0);
         setGroups(groupsResponse.data || []);
         setBalances(balancesResponse.data || []);
         setFriends(friendsResponse.data);
@@ -48,6 +54,7 @@ export default function DashboardPage() {
         console.error("Error fetching dashboard data:", error);
         // Initialize with empty arrays on error
         setRecentExpenses([]);
+        setExpensesTotal(0);
         setGroups([]);
         setBalances([]);
         setFriends([]);
@@ -113,9 +120,9 @@ export default function DashboardPage() {
           <CardContent>
             {loading ? (
               <Skeleton className="h-7 w-20" />
-            ) : recentExpenses.length > 0 ? (
-              <div className="text-2xl font-bold">{recentExpenses.length}</div>
-            ) : null}
+            ) : (
+              <div className="text-2xl font-bold">{expensesTotal}</div>
+            )}
           </CardContent>
           <CardFooter>
             <Link
@@ -134,9 +141,9 @@ export default function DashboardPage() {
           <CardContent>
             {loading ? (
               <Skeleton className="h-7 w-20" />
-            ) : groups.length > 0 ? (
+            ) : (
               <div className="text-2xl font-bold">{groups.length}</div>
-            ) : null}
+            )}
           </CardContent>
           <CardFooter>
             <Link
