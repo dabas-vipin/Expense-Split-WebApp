@@ -105,9 +105,37 @@ All addressed:
   user's perspective; unknown future types fall through to a generic
   placeholder so older clients don't break.
 
+- **Expense detail richness** — Expense gains `category` (enum of
+  food/transport/lodging/entertainment/utilities/shopping/other),
+  `currency` (ISO 3-letter, stored uppercase, default USD), and
+  `notes` (nullable text up to 1000 chars). UI shows the category
+  Badge on expense cards and formats amounts via `Intl.NumberFormat`
+  in the expense's currency. No FX conversion — mixed-currency
+  groups stay visually distinct so the UI never silently sums
+  apples + pears. Receipts deferred (own storage/UI subfeature).
+- **Profile + avatar upload** — `PATCH /users/me`, `PATCH /users/me/password`,
+  `POST /users/me/avatar` (multipart, ≤2MB, PNG/JPEG/WEBP/GIF). Files
+  land at `UPLOADS_DIR/avatars/{userId}.{ext}` and are served via
+  `@nestjs/serve-static` at `/uploads`. The Profile page replaces the
+  broken `/users/profile` + `/users/password` calls; a small
+  `lib/avatar-url.ts` helper turns the stored relative path into a
+  fully-qualified URL for the browser.
+- **Email + password reset** — Pluggable `EmailService` with a default
+  Logger-backed backend (logs to stdout so the demo container needs
+  zero external setup); swap a single method to wire Resend/SES.
+  Welcome email on register; `POST /auth/password-reset/request`
+  (anti-enumeration 204) + `POST /auth/password-reset/confirm`
+  (1-hour TTL, single-use tokens) with `/forgot-password` and
+  `/reset-password` pages on the frontend.
+
 ### Not yet built
 
-- **Expense detail richness** — categories, receipts/attachments, notes, currency.
+- **Notifications via email** (currently only welcome + password reset
+  go out; in-app activity feed already covers the rest).
+- **Receipts on expenses** — needs the same kind of storage decision
+  as avatars plus multi-file-per-expense semantics.
+- **Production email provider** — swap `EmailService.send()` for a
+  real Resend / SES / SendGrid call when deploying.
 - **Email** — verification, password reset, friend-request notifications. There is
   a TODO in `users.controller.ts` for a 2FA password-update endpoint.
 - **Group invitations** — currently you can only add existing friends to a group.
