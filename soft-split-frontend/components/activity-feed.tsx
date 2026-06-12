@@ -31,63 +31,166 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
-function renderEvent(event: ActivityEvent, currentUserId: string) {
-  if (event.type === "settlement") {
-    const amount = Number.parseFloat(event.payload?.amount ?? "0")
-    const note = event.payload?.note as string | undefined
-    const youArePayer = event.actor.id === currentUserId
-    const youArePayee = event.recipient?.id === currentUserId
+/** A single rendered row: avatar + line + optional sub-line + timestamp. */
+function row(
+  avatarName: string,
+  line: React.ReactNode,
+  createdAt: string,
+  subLine?: React.ReactNode,
+) {
+  return (
+    <div className="flex items-start gap-3 py-2">
+      <Avatar className="h-8 w-8">
+        <AvatarFallback>{avatarName.substring(0, 2).toUpperCase()}</AvatarFallback>
+      </Avatar>
+      <div className="flex-1 text-sm">
+        <div>{line}</div>
+        {subLine ? (
+          <div className="text-xs text-muted-foreground mt-0.5">{subLine}</div>
+        ) : null}
+        <div className="text-xs text-muted-foreground mt-0.5">
+          {formatRelative(createdAt)}
+        </div>
+      </div>
+    </div>
+  )
+}
 
-    let line: React.ReactNode
-    if (youArePayer && event.recipient) {
-      line = (
-        <>
-          You paid <span className="font-medium">{event.recipient.name}</span>{" "}
-          <span className="font-medium">${amount.toFixed(2)}</span>
-        </>
-      )
-    } else if (youArePayee) {
-      line = (
-        <>
-          <span className="font-medium">{event.actor.name}</span> paid you{" "}
-          <span className="font-medium">${amount.toFixed(2)}</span>
-        </>
-      )
-    } else {
-      // Shouldn't usually happen since the backend filters to events
-      // involving the current user, but render something safe.
-      line = (
-        <>
-          <span className="font-medium">{event.actor.name}</span> paid{" "}
-          <span className="font-medium">{event.recipient?.name ?? "someone"}</span>{" "}
-          <span className="font-medium">${amount.toFixed(2)}</span>
-        </>
+function renderEvent(event: ActivityEvent, currentUserId: string) {
+  const isActor = event.actor.id === currentUserId
+  const isRecipient = event.recipient?.id === currentUserId
+  const actorName = event.actor.name
+  const otherName = event.recipient?.name ?? "someone"
+
+  switch (event.type) {
+    case "settlement": {
+      const amount = Number.parseFloat(event.payload?.amount ?? "0")
+      const note = event.payload?.note as string | undefined
+      let line: React.ReactNode
+      if (isActor && event.recipient) {
+        line = (
+          <>
+            You paid <span className="font-medium">{otherName}</span>{" "}
+            <span className="font-medium">${amount.toFixed(2)}</span>
+          </>
+        )
+      } else if (isRecipient) {
+        line = (
+          <>
+            <span className="font-medium">{actorName}</span> paid you{" "}
+            <span className="font-medium">${amount.toFixed(2)}</span>
+          </>
+        )
+      } else {
+        line = (
+          <>
+            <span className="font-medium">{actorName}</span> paid{" "}
+            <span className="font-medium">{otherName}</span>{" "}
+            <span className="font-medium">${amount.toFixed(2)}</span>
+          </>
+        )
+      }
+      return row(
+        actorName,
+        line,
+        event.createdAt,
+        note ? `"${note}"` : undefined,
       )
     }
 
-    return (
-      <div className="flex items-start gap-3 py-2">
-        <Avatar className="h-8 w-8">
-          <AvatarFallback>
-            {event.actor.name.substring(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 text-sm">
-          <div>{line}</div>
-          {note ? (
-            <div className="text-xs text-muted-foreground mt-0.5">"{note}"</div>
-          ) : null}
-          <div className="text-xs text-muted-foreground mt-0.5">
-            {formatRelative(event.createdAt)}
-          </div>
-        </div>
-      </div>
-    )
+    case "friend_request_accepted": {
+      // Backend emits with actor=accepter, recipient=original requester.
+      const line = isActor ? (
+        <>
+          You're now friends with{" "}
+          <span className="font-medium">{otherName}</span>
+        </>
+      ) : (
+        <>
+          <span className="font-medium">{actorName}</span> accepted your friend
+          request
+        </>
+      )
+      return row(actorName, line, event.createdAt)
+    }
+
+    case "group_invitation_sent": {
+      const groupName = event.payload?.groupName ?? "a group"
+      const line = isActor ? (
+        <>
+          You invited <span className="font-medium">{otherName}</span> to{" "}
+          <span className="font-medium">{groupName}</span>
+        </>
+      ) : (
+        <>
+          <span className="font-medium">{actorName}</span> invited you to{" "}
+          <span className="font-medium">{groupName}</span>
+        </>
+      )
+      return row(actorName, line, event.createdAt)
+    }
+
+    case "group_invitation_accepted": {
+      const groupName = event.payload?.groupName ?? "a group"
+      // actor = invitee who accepted; recipient = original inviter.
+      const line = isActor ? (
+        <>
+          You joined <span className="font-medium">{groupName}</span>
+        </>
+      ) : (
+        <>
+          <span className="font-medium">{actorName}</span> accepted your
+          invitation to <span className="font-medium">{groupName}</span>
+        </>
+      )
+      return row(actorName, line, event.createdAt)
+    }
+
+    case "expense_created": {
+      const description = event.payload?.description ?? "an expense"
+      const amountStr = event.payload?.amount
+      const amount =
+        typeof amountStr === "string" || typeof amountStr === "number"
+          ? Number.parseFloat(String(amountStr))
+          : null
+      const groupName = event.payload?.groupName as string | null | undefined
+      const amountFragment =
+        amount != null && Number.isFinite(amount) ? (
+          <>
+            {" "}
+            (<span className="font-medium">${amount.toFixed(2)}</span>)
+          </>
+        ) : null
+      const groupFragment = groupName ? (
+        <>
+          {" "}
+          in <span className="font-medium">{groupName}</span>
+        </>
+      ) : null
+      const line = isActor ? (
+        <>
+          You added <span className="font-medium">{description}</span>
+          {amountFragment}
+          {groupFragment}
+        </>
+      ) : (
+        <>
+          <span className="font-medium">{actorName}</span> added{" "}
+          <span className="font-medium">{description}</span>
+          {amountFragment}
+          {groupFragment}
+        </>
+      )
+      return row(actorName, line, event.createdAt)
+    }
+
+    default:
+      // Unknown future event types — render the type as a hint instead of
+      // throwing, so older clients still load when new types land.
+      return (
+        <div className="text-sm text-muted-foreground py-2">{event.type}</div>
+      )
   }
-  // Unknown future event types — render the type as a hint.
-  return (
-    <div className="text-sm text-muted-foreground py-2">{event.type}</div>
-  )
 }
 
 export function ActivityFeed({ limit = 5, refreshKey = 0 }: ActivityFeedProps) {
@@ -120,7 +223,9 @@ export function ActivityFeed({ limit = 5, refreshKey = 0 }: ActivityFeedProps) {
     <Card>
       <CardHeader>
         <CardTitle>Recent activity</CardTitle>
-        <CardDescription>Settlements and other updates</CardDescription>
+        <CardDescription>
+          Settlements, invitations, expenses, and friend updates.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {loading ? (
