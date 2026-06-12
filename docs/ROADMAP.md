@@ -93,6 +93,10 @@ All addressed:
   Invitee accepts/declines from a "Group invitations" card on
   `/friends`. Accepting calls `addMemberFromInvitation` which skips the
   friends-only gate, because the invitation itself is the consent.
+- **Dashboard real numbers** — the "My Expenses" / "My Groups" cards
+  now show the real totals (from the paginated `total` field, not the
+  capped recent slice). Zero state renders "0" instead of an empty
+  card.
 
 ### Not yet built
 
@@ -102,8 +106,6 @@ All addressed:
 - **Email** — verification, password reset, friend-request notifications. There is
   a TODO in `users.controller.ts` for a 2FA password-update endpoint.
 - **Group invitations** — currently you can only add existing friends to a group.
-- **Dashboard real numbers** — the "My Expenses" / "My Groups" cards show
-  the length of the *recent* list (capped at 5), not actual totals.
 - **Profile/avatar upload** — `avatar` column exists but nothing populates it.
 
 ## Notes for whoever picks this up
