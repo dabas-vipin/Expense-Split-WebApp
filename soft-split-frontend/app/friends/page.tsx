@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Search, UserPlus, UserCheck, UserX } from "lucide-react"
 import { Friend, FriendRequest, User } from "@/src/contracts"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { GroupPendingInvitations } from "@/components/group-pending-invitations"
 
 export default function FriendsPage() {
   const { user } = useAuth()
@@ -138,7 +139,11 @@ export default function FriendsPage() {
   return (
     <div className="container py-10">
       <h1 className="text-3xl font-bold mb-6">Friends</h1>
-      
+
+      <div className="mb-6">
+        <GroupPendingInvitations />
+      </div>
+
       <Tabs defaultValue="friends" className="space-y-4">
         <TabsList>
           <TabsTrigger value="friends">My Friends</TabsTrigger>

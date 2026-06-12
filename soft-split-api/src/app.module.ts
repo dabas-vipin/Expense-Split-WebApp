@@ -12,6 +12,7 @@ import { AuthModule } from './auth/auth.module';
 import { FiltersModule } from './filters/filters.module';
 import { SettlementsModule } from './settlements/settlements.module';
 import { ActivityModule } from './activity/activity.module';
+import { GroupInvitationsModule } from './group-invitations/group-invitations.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ActivityModule } from './activity/activity.module';
     FiltersModule,
     SettlementsModule,
     ActivityModule,
+    GroupInvitationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

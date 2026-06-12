@@ -104,6 +104,34 @@ export class GroupsService {
     return this.groupsRepository.save(group);
   }
 
+  /**
+   * Adds `userId` to the group without running the friendship/active check.
+   * Used by GroupInvitationsService when an invitee accepts an invitation —
+   * the invitation itself is the consent gate, friendship is not required.
+   * Should not be called from request handlers directly.
+   */
+  async addMemberFromInvitation(
+    groupId: string,
+    userId: string,
+  ): Promise<Group> {
+    const group = await this.groupsRepository.findOne({
+      where: { id: groupId },
+      relations: ['members'],
+    });
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+    if (!group.members.some((member) => member.id === userId)) {
+      const user = await this.usersService.findOne(userId);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      group.members.push(user);
+      await this.groupsRepository.save(group);
+    }
+    return this.findOne(groupId);
+  }
+
   async addMember(id: string, userId: string, callerId: string): Promise<Group> {
     const group = await this.assertCallerIsMember(id, callerId);
 
